@@ -1,0 +1,342 @@
+---
+title: "Practical 3,5,7 and 8"
+author: "Hilda Ngatia"
+date: "5/6/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Poison Distribution revisited  
+
+According to the National Office of Vital Statistics in the US Department of Health, the average number of accidental drownings per year in the United States is 3.0 per 100,000 persons in the population. Use the Poisson distribution to calculate the probability that in a city of 200,000 people there will be:  
+
+**a) 2 accidental drownings in a year**  
+
+For a popuplation of 200,000, the rate will be $3*2=6$. Using the poisson distribution where $\lambda=6$ and $d=2$ we get the probability as:  
+
+``` {r}
+dpois(2,6)
+```
+The probability of 2 accidental drownings per year is $0.0446$.  
+
+**b) between 3 to 6 (inclusive) accidental drownings in a year**  
+
+This means 3,4,5 and 6  
+``` {r}
+dpois(3,6); dpois(4,6); dpois(5,6); dpois(6,6)
+```
+
+Summing the probabilities gives;
+$0.089235+0.1338526+0.1606231+0.162314= 0.544334$  
+
+Hence the probability of between 3 to 6 accidental drownings in a year is $0.544334$  
+
+**c) fewer than 3 accidental drowings in a year**  
+
+This means 0,1 or 2 drownings  
+``` {r}
+dpois(0,6); dpois(1,6); dpois(2,6)
+```
+``` {r}
+sum(dpois(0,6), dpois(1,6), dpois(2,6))
+```
+The probability of less than 3 drownings in an year is 0.0619688 or roughly 0.062  
+
+**d) at least 3 accidental drownings in a year**
+
+This is simply $1-P(0,1~or~2~drownings~per~year)$  
+
+$1-0.0619688=0.9380312$  
+
+The probability of at least 3 drownings per year is $0.9380$  
+
+# Cox Proportional Hazard Regression and Diagnostics  
+
+## Part 1  
+
+Malignant Melanoma occurs when the pigment-producing cells that give colour to the skin become cancerous.  
+Symptoms might include a new, unusual growth or a change in an existing mole. Melanomas can occur anywhere on the body.  
+Treatment may involve surgery, radiation, medication or in some cases, chemotherapy. 
+Some of the risk factors involve family history, presence of many moles or a poor immune system.  
+Some of the key determinants of survival for patients who have undergone an operation in maliganant melanoma are:  
+  -   Medical History  
+  -   Type and Stage of the cancer  
+  -   Treatment chosen  
+  -   Response to treatment
+
+
+```{r}
+library(ISwR)
+data ("melanom")
+attach (melanom)
+```
+
+ The _melanom_ data frame has 205 rows and 6 columns. 
+
+```{r melanom}
+head(melanom)
+```
+
+The variables in the data can be viewed using the command below:
+
+``` {r}
+str(melanom)
+```
+This data contains the following variables:  
+ 
+ 1. *no*: a numeric vector representing the patient's code.  
+ 2. *status* :a numeric vector representing survival status;  
+    1: dead from melanoma  
+    2: alive  
+    3: dead from other cause.  
+ 3. *days* :a numeric vector, observation time.  
+ 4. *ulc* :a numeric vector, ulceration;  
+    1: present  
+    2: absent.
+ 5.*thick* :a numeric vector represnting tumor thickness (1/100 mm), and  
+ 6. *sex* :a numeric vector code represnting gender  
+    1: female  
+    2: male  
+    
+### Converting variables
+
+We convert variables *ulc* and *sex* to factors
+
+``` {r}
+melanom$ulc<-as.factor(melanom$ulc)
+melanom$sex<-as.factor(melanom$sex)
+
+str(melanom)
+
+```
+
+# Effects of Covariates
+
+First we test the effect of the covariate **sex** on post operation survival for malignant melanoma.  
+The hazard ratio associated with covariate sex can be obtained from the cox proportional hazard regression model.  
+
+``` {r}
+library(survival)
+```
+``` {r}
+cox_sex<-coxph(Surv(days,status==1)~ sex)
+summary(cox_sex)
+```
+
+The **exp(coef)** (1.939) represents the hazard ratio for male (versus female) without adding any additional covariate effect. This means males have a higher chance of death compared to females.  
+The 95% confidence interval for covariate effect of sex is [1.153, 3.26].  
+The Likelihood ratio test statistic is 6.15 on 1 df with a p-value of 0.01.  
+Based on this p-value there is evidence to say males are more likely to die from post melanoma operation.  
+
+Now we adjust for Tumour thickness, _thick_.  
+
+``` {r}
+summary(coxph(Surv(days,status==1)~sex + log(thick)))
+```
+
+The hazard ratio of the effect of the covariate sex changes from 1.939 to 1.581 after adding the additional effect of the covariate log of tumor thickness covariate.  
+
+From the results above, a unit increase in log(thickness of tumour) increases probability of death from melanoma operation by 2.183.
+
+The likelihood ratio test statistic improves from (LRT=6.15 on 1 df, p-value=0.01) to (LRT=33.45, 2 df, p-value=5e-08) after adding the additional effect of tumour thickness. This is a much improved model.    
+
+In the next model we add ulceration as a stratification covariate.
+
+``` {r}
+summary(coxph(Surv(days,status==1)~sex + log(thick)+ strata(ulc)))
+```
+
+The hazard ratio for covariate sex changes from 1.581 to 1.433, after adding ulceration as a statification covariate.   
+
+The hazard ratio for covariate log(thickness) changes from 2.1834 to 1.7505, when adding ulceration as a stratification covariate.  
+
+The LRT however reduces from 33.45 on 2 df (p=5e-08) to 13.3 on 2 df (p=0.001) after adding ulceration as a stratication covatiate. The model is not improved. This means that ulceration is not a confounding factor.  
+
+# Diagnostics  
+
+## Proportional Hazard Function  
+
+We use the **Schoenfeld residuals** to check for proportional hazard assumptions.  
+
+``` {r}
+library(survminer)
+fullcoxmodel<-coxph(Surv(days,status==1)~sex + log(thick)+ strata(ulc))
+summary(fullcoxmodel)
+```
+``` {r}
+testfull.ph<-cox.zph(fullcoxmodel)
+testfull.ph
+```
+
+From the results above, the test is not statistically significant for the sex covariate and the global covariate.  
+
+Therefore we can assume the proporational hazard (p>0.05).  
+
+A graph of the scaled schoenfeld residuals for the covariates sex and log thickness is as follows;  
+
+``` {r}
+ggcoxzph(testfull.ph)
+```
+
+From the graph, there is no pattern with time.  
+
+The assumption of proportional hazards appears to be supported for the covariates log(thickness) and sex.  
+
+## Influencial Observations  
+
+To test influential observations or outliers, we can visualize either the deviance residuals or the dfbeta values.  
+
+### Using dfbetas
+
+``` {r}
+ggcoxdiagnostics(fullcoxmodel, type="dfbeta", linear.predictions = FALSE, ggtheme = theme_bw())
+```
+
+The above index plots show that comparing the magnitudes of the largest dfbeta values to the regression coefficients suggests that none of the observations is terribly influential individually.  
+
+### Using deviance
+
+These residuals should be roughly symmetrically distributed about zero with a standard deviation of 1
+
+``` {r}
+ggcoxdiagnostics(fullcoxmodel, type="deviance", linear.predictions = FALSE, ggtheme = theme_bw())
+```
+
+The graph is not symmetric around zero. The negative values, which represent those individuals who lived too long compared to the expected survival time, seem to be fairly more than the positive values (those who dies too soon).  
+
+#Testing non linearity: Assess the functional form of a continuous variable
+
+For the continuous variable “tomour thickness,” check if the linearity assumption holds and if not, which functional form is suitable for modeling thickness (logarithm, square root, etc)?
+
+```{r}
+ggcoxfunctional(Surv(days, status == 1) ~ thick + log(thick) + sqrt(thick), data = melanom)
+```
+
+There is slight nonlinearity. Neither log or square root is better.  
+
+## Part 2  
+
+Consider Ovarian data in the survival package.  
+
+``` {r survival::ovarian}
+data("ovarian")
+attach (ovarian)
+```  
+
+The data describes survival in a randomized trial comparing two treatments for ovarian cancer.  
+
+### Structure of the data
+
+``` {r}
+names(ovarian)
+str(ovarian)
+```
+We convert residual disease presence, treatment group and ECOG performance to factors.  
+
+``` {r}
+ovarian$resid.ds<-as.factor(ovarian$resid.ds)
+ovarian$rx<-as.factor(ovarian$rx)  
+ovarian$ecog.ps<-as.factor(ovarian$ecog.ps)
+str(ovarian)
+```
+
+The fustat (Censoring status) is denoted by 1 if the event is observed and 0 if its censored.
+
+### Cox regression
+
+The first model uses age and ecog performance as covariates.  
+
+``` {r}
+age.eco.mod<-coxph(Surv(futime, fustat==1)~ age+ ecog.ps, data = ovarian)
+summary(age.eco.mod)
+```
+
+The hazard ratio for age is 1.175 and the hazard ratio for ecog performance is 1.019.  
+
+The model has a C-statistic of 0.784 and LRT of 14.29 on 2 df and a p<0.0001.
+
+The second model contains age, ecog performance and an interaction term of the two terms
+
+``` {r}
+age.eco.intmod<-coxph(Surv(futime, fustat==1)~ age + ecog.ps + (age:ecog.ps), data= ovarian)
+summary(age.eco.intmod)
+```  
+
+The hazard ratio for age doesn't change after adding the additional effect of the interaction covariate. The hazard ratio for Ecog performance changes from 1.019 to 0.958 when the additional interaction covariate is added to the model.  
+
+The C-statistic however remains the same (0.784) and the LRT becomes 14.29 on 3 df. The model doesn't significantly improve when the additional interaction covariate is added to the model.  
+
+### Test for proportional hazards  
+
+For the first model,  
+
+``` {r}
+temp1 <- cox.zph(age.eco.mod)
+print(temp1) # display the results
+```
+
+From the results of the test above all the covariates including the Global covariate have p-values greater than 0.05 hence the proportional hazard assumptions hold.  
+
+The curves are plotted as follows;  
+
+``` {r}
+par(mfrow=c(2,1))
+plot(temp1)
+par(mfrow=c(1,1))
+```
+
+For model 2
+
+``` {r}
+temp2 <- cox.zph(age.eco.intmod)
+print(temp2) # display the results
+```
+
+From the results, all covariates including global have a p value greater than 0.05 hence the proportional hazard assumptions hold.  
+
+The plots are displayed as follows;  
+
+``` {r}
+par(mfrow=c(3,1))
+plot(temp2)
+par(mfrow=c(1,1))
+```
+
+### Test for linearity
+
+Is the linear functional form for age suitable in this model?
+
+```{r}
+ggcoxfunctional(Surv(futime, fustat==1)~ age + sqrt(age) +log(age), data= ovarian)
+```
+
+All the plots seem to be quite similar. There is no functional form of age that yield a different plot hence none is preferable.  
+
+### Influential observations
+
+Are there any influential observations in any of the covariates that may lead to over or under-estimation of the effect of any of the covariates?  
+
+
+### Using dfbetas
+
+``` {r}
+ggcoxdiagnostics(age.eco.mod, type="dfbeta", linear.predictions = FALSE, ggtheme = theme_bw())
+```
+
+The above index plots show that comparing the magnitudes of the largest dfbeta values to the regression coefficients suggests that none of the observations is terribly influential individually.  
+Nevertheless, some of the dfbeta values for ecog.ps are large compared with the others.
+
+### Using deviance
+
+These residuals should be roughly symmetrically distributed about zero with a standard deviation of 1
+
+``` {r}
+ggcoxdiagnostics(age.eco.mod, type="deviance", linear.predictions = FALSE, ggtheme = theme_bw())
+```
+
+The pattern of deviance residuals seems fairly symmetric around zero.  
