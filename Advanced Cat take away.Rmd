@@ -1,0 +1,403 @@
+---
+title: "Advanced Linear Regression"
+author: "Hilda Wanjugu Ngatia I56/35437/2019"
+date: "5/10/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1  
+
+  As part of a larger case-control study;man investigator decided to identify factors associated with giving birth to a low birth weight baby (weighing less than 2500 grams). Women were matched according to age so that each case was matched to one control. The dataset is lowbwtmat.csv and it contains the following variables   
+
+```{r}
+lowbwt<-read.csv("C:/Users/Folio 9480/Desktop/Class work/Year 1 Sem 2/Advanced linear/lowbwtmat.csv", header = T, sep= ",")
+```
+``` {r}
+attach(lowbwt)
+str(lowbwt)
+lowbwt$LOW<-as.factor(lowbwt$LOW);lowbwt$SMOKE<-as.factor(lowbwt$SMOKE)
+lowbwt$PTL<-as.factor(lowbwt$PTL);lowbwt$HT<-as.factor(lowbwt$HT)
+lowbwt$UI<-as.factor(lowbwt$UI);lowbwt$FTV<-as.factor(lowbwt$FTV)
+```
+
+The response in this model is low birth weight.  
+
+The predictor variables are Mother's weight during last menstural cycle, smoking status of mother during pregnancy, History of premature labor, History of hypertention and Urinary tract infection.  
+
+Visit to a pysiacian during first trimester is a potential confounder.  
+
+We begin by testing a model with all predictor variables listed above.  
+
+## Model
+
+``` {r}
+model1<-glm(LOW~LWT + SMOKE + PTL + HT + UI + FTV, family = "binomial")
+summary(model1)
+```
+The model will be given as:
+
+**ln(Odds of Low birth weight)= 1.0982 - 0.0150(LWT) + 1.0488(SMOKE) +1.0423(PTL) +1.7458(HT)+ 1.0813(UI)- 0.3678(FTV)**
+
+## Goodness of fit  
+
+To check the significance of the model we use the likelihood ratio test statistic. We compare a null model (without any predictors) with the fitted model.    
+
+``` {r}
+   fitmodel1=glm(LOW~1, family=binomial)#null model fit
+  anova(fitmodel1,model1,test="LRT")
+
+```
+The deviance is 23.579 and has a p-value of **0.0006241** (<0.05) hence the fitted model is statistically significant.  
+
+## Odds ratio and Significance of Predictors   
+
+``` {r}
+cbind(exp(coef(model1)), exp(confint(model1)))
+```
+
+### Interpretation of Odds  
+
+  A mother is **1.49%** less likely to have a baby with low birth weight for every unit increase in weight during her last menstural cycle, adjusting for other all other predictors.  
+
+  A mother who smokes during pregnancy is **2.85** times more likely to get a baby with a low birth weight compared to a mother who doesn't smoke during prenancy, adjusting for all other predictors.    
+
+  A woman with history of premature labor is **2.84** times more likely to get a baby with a low birth weight compared to a woman with no history of premature labor, adjusting for all other predictors.  
+
+  A woman with a history of hypertension is **5.73** times more likely to give a bith to a baby with low birth weight compared to a woman without history of hypertension, adjusting for other predictor variables.  
+
+  A woman who has urinary tract infection is **2.95** times more likely to get a baby with low birth weight compared to a woman with urinary tract infection adjusting for other prediactor variables.  
+
+  A woman who has visited the physician during the first trimester is **30.77%** less likely to get a baby with low birth weight compared to a woman who never visited the physician during the first trimester, adjusting for other predictor variables.  
+
+### Significance of individual predictors
+
+  From the 95% confidence intervals, mother's weight during last menustration is significant in determining the weight of the baby since its upper confidence limit is lower than 1. The smoking status of the mother during pregnacy and history of hypertension both have a lower confidence limit greater than one hence making them statistically significant in determining the weight of a baby at birth.  
+
+  The variables history of premature labour and urinary tract infection as well as Pysician visit during first trimester are not significant in determining the weight of a baby since the number 1 falls withing the confidence limits.  
+
+
+# Question 2  
+
+  Researchers in a certain county tracked flu cases requiring hospitalization in those residents aged 65 and older during a two-month period one winter. They matched each case with 2 controls by sex and age. They used medical records to determine whether cases and controls had received a flu vaccine shot and whether they had underlying lung disease. Their interest was to determine if flu vaccination prevents hospitalization for flu (severe cases of flu). The underlying lung disease is a potential confounder.  
+
+``` {r}
+flu<-read.csv("C:/Users/Folio 9480/Desktop/Class work/Year 1 Sem 2/Advanced linear/flumatch.csv", header = T, sep= ",")
+```
+``` {r}
+attach(flu)
+```
+
+## Model  
+
+We fit two models to test the effect of the confounder on the prediction of outcome.  
+
+The first model contains vaccine as the only predictor variable while the second model contains both vaccine and lung disease  
+
+``` {r}
+vacmodel<-glm(outcome~ vaccine, family = binomial, data = flu)
+summary(vacmodel)
+```
+
+the fisrt model is;  
+
+$$ln(Odds of Outcome) = -0.5748 -0.3373 (vaccine)$$  
+
+The odds ratio for the variable vaccine exp(-0.3373) is 0.7137.  
+
+``` {r}
+cbind(exp(coef(vacmodel)), exp(confint(vacmodel)))
+```
+This means a patient 28.63% less likely to be hospitalized for flu infection if he is vaccinated compared to a patient not vaccinated.  
+
+
+In the second model we include the variable lung disease  
+``` {r}
+vaclunmod<-glm(outcome~ vaccine+ lungdisease, family = binomial, data = flu)
+summary(vaclunmod)
+```
+
+The new model is given by:
+
+$$ln(Odds of Outcome)= -0.9430- 0.3453(Vaccine) + 1.3379(lungdisease)$$  
+
+The odds ratios and their respective confidence intervals are:  
+
+``` {r}
+cbind(exp(coef(vaclunmod)), exp(confint(vaclunmod)))
+```
+A patient who has been vaccined is 29.2% less likely to be hospitalized for flu compared to a patient who hasn't been vaccinated, adjusting for lung disease.
+
+A patient with lung disease is 3.8 times more likely to be hospitalized for flu compared to a patient with no lung disease, adjusting for vaccine.  
+
+The significance of the model can be determined using the likelihood ratio test. We assess the significance of the difference between the two models.
+
+# Question 3  
+
+  The data set **serv.csv** gives part of data obtained during a 10 year follow up study on risk factors associated with death due to cancer for those serving in the military in Britain. The number of deaths are recorded per person years for the pair combination of type of service(veteran or non veteran) and age category of the soldiers. Are the two factors significantly associated with cancer deaths?  
+
+``` {r}
+serv<-read.csv("C:/Users/Folio 9480/Desktop/Class work/Year 1 Sem 2/Advanced linear/serv.csv", header = T, sep= ",")
+```
+``` {r}
+attach(serv)
+str(serv)
+```
+
+## Model  
+
+We fit a poisson regression model. The response variable is number of cancer cases. The predictors are age groups and veteran service.  
+
+``` {r}
+serv_model<-glm(cancer~ age + service, family = poisson, data = serv)
+summary(serv_model)
+```
+The model will be of the form;
+  
+  **ln(Cancer) =2.806 + 1.2164(age 25-29) + 1.9924(age 30-34) + 2.5553(age 35-39) + 2.1450(age 40-44) + 1.7048(age 45-49) + 1.7918(age 50-54) + 1.981(age 55-59) + 1.9867(age 60-64) + 1.5841 (age 65-69) + 1.4371(age 70+)- 0.7966(veteran)**
+
+## Odds Ratios and .95 C.I
+
+``` {r}
+cbind(exp(coef(serv_model)), exp(confint(serv_model)))
+```
+
+  A patient under study who lies between age **(35-39)** are **12.875** times more likely to die from cancer compared to those aged between 0-24 adjusting for all other predictors. This is the highest Odds ratio. Those aged between **40-44** yrs are **8.5** times more likely to die from cancer compared to those aged between 0-24, adjusting for other predictors. Those aged between **(30-34), (60-64) and (55-59)** are **7.33, 7.29 and 7.25** times (respectively) more likely to die from cancer compared to those aged between 0-24, adjusting for other predictors.  
+
+  A patient who served as a veteran is **55%** less likely to die from cancer compared to a patient who wasn't a veteran adjusting for age groups.  
+
+  Using the Confidence intervals (95%), all age groups are significant in determining risk of death from cancer since all the lower confidence limits are higher than one, adjusting for veteran service.  
+
+  The 95% Confidence limits for veteran service is **[0.40576, 0.50024]**. The upper limit is lower than one hence veteran service is significant in determining risk of death from cancer adjusting for age groups.  
+
+# Question 4
+
+  The dataset *lungcancer.csv* has information of mortality by age and smoking status. The dataset contains the following variables: age at baseline: 40-44, 45-49, 50-54, 55-59, 60-64, 65-69, 70-74, 75-79, 80+. Smoking status: 1 = never smoked, 2 = smoked cigars only, 3 = smoked cigarettes and cigars, 4 = smoked cigarettes only population: number of male pensioners followed deaths: number of deaths in a six-year period. Fit an appropriate model that describes mortality using age at baseline and smoking status.  
+  
+
+``` {r}
+lungcancer<-read.csv("C:/Users/Folio 9480/Desktop/Class work/Year 1 Sem 2/Advanced linear/lungcancer.csv", header = T, sep= ",")
+attach(lungcancer)
+```
+
+``` {r}
+str(lungcancer)
+#Convert Smoking status to a factor
+lungcancer$smoke<-as.factor(lungcancer$smoke)
+```  
+
+## Model
+
+The best model for this would be a Poisson regression model. The outcome is number of deaths and the predictors are age groups and smoking status.  
+
+``` {r}
+lungcanmod<-glm(dead~ age+ smoke, family = poisson, data = lungcancer)
+summary(lungcanmod)
+```  
+The model for this data is given by; 
+
+  **ln(odds of death from lung cancer)= 3.29 + 0.128(age 45-49) + 0.322(age 50-54) + 1.372(age 55-59) + 1.902(age 60-64) + 1.863(age 65-69) + 1.566(age 70-74) + 1.114(age 75-79) + 0.737(age 80+) + 0.260(smoke2) + 1.614(smoke3) + 1.341(smoke4)** 
+
+## Odds ratio and 95% C.I  
+
+The odds ratio for the coefficients and their respective 95% confidence limits are as follows:
+
+``` {r}
+cbind(exp(coef(lungcanmod)), exp(confint(lungcanmod)))
+```  
+
+### Odds ratio interpretation  
+
+**Age groups**;  
+Males in the study aged between **60-64** and **65-69** were **6.69** and **6.44** times more likely to die from lung cancer,respectively, compared to those within age group **40-44** (which is the **reference variable** for catergory age), adjusting for other predictor variables.  
+
+Those aged between **70-74** were **4.79** times more likely to die from lung cancer compared to those aged between 40-44, adjusting for other predictors. Those aged between 55-59 are 3.94 times as likely to from lung cancer compared to those aged between 40-44.
+
+**Smoking status**;  
+The smoking status is represented as,  
+ 1 = never smoked  
+ 2 = smoked cigars only  
+ 3 = smoked cigarettes and cigars  
+ 4 = smoked cigarettes  
+ 
+"Never smoked" is the reference group.  
+
+Those men in the study who smoked cigars only were **29.7%** more likely to die from lung cancer compared to those who never smoked, adjusting for all othe predictors.  
+
+Those who smoked both cigarettes and cigars were **5.02** times more likely to die from lung cancer compared to those who never smoked, adjusting for other predictors.  
+
+Finally, those who smoked cigarettes only were **3.82** times more likely to die from lung cancer compared to those who never smoked, adjusting for other predictors.  
+
+### Significance of predictors using C.I
+
+The confidence limits for age group 45-49 is **[0.9735, 1.3279]**. One lies within this interval hence this age group is not quite significant in determining risk of dying from lung cancer, while adjusting for the other predictors.
+
+However all other coeffients in the model have a **lower limit greater than 1** hence they are all significant in determining risk of dying from lung cancer while adjusting for adjacent other predictors.  
+
+# Question 5  
+
+  The data **mental.csv** comes from a study of mental health for a random sample of adult residents of Alachua County, Florida. Mental impairment is ordinal, with categories (well,mild symptom formation, moderate symptom formation, impaired). The study related mental impairment(mental)  to two predictor variables; socioeconomic status (ses)(1=high, 0=low) and the life events index (event) which is a composite measure of the number and severity of important life events such as birth of child, new job, divorce, or death in family that occurred to the subject within the past three years.  
+  
+``` {r}
+mentaldata<-read.csv("C:/Users/Folio 9480/Desktop/Class work/Year 1 Sem 2/Advanced linear/mental.csv", header = T, sep= ",")
+attach(mentaldata)
+```
+
+``` {r}
+library(MASS)
+```
+
+``` {r}
+str(mentaldata)
+```
+
+``` {r}
+mentaldata$mental<-as.factor(mentaldata$mental)
+mentaldata$ses<-as.factor(mentaldata$ses)
+```
+
+## Model
+
+We should fit a multinomial and ordinal logistic regression model.  
+
+### Multinomial logistic regression model  
+
+``` {r}
+library(nnet)
+```
+
+``` {r}
+mentmult<-multinom(mental~ ses+ event, data = mentaldata)
+summary(mentmult)
+```
+
+The multinomial logistic regression models creates are:
+
+$$ln(mild/well)= -0.65521-0.24873(ses1)+o.22854(event)$$  
+
+$$ln(moderate/well)= -0.66219-1.94374(ses1)+0.29300(event)$$  
+
+$$ln(impared/well)= -1.90259-1.60625(ses1)+0.56016(event)$$  
+
+The respective odds ratios are:
+
+``` {r}
+cbind(exp(coef(mentmult)))
+```
+
+**_Interpretation_**  
+
+Comparing mild symptoms to being well;  
+
+A patient from a high socio econimic status is (exp(-0.24873)= 0.7797911) 22.02% less likely to suffer mild symptoms vs being well compared to a patient from a low socio ecomic status, adjusting for life events index. 
+
+For a every unit increase in life event index, a patient is 25.67% more likely to suffer mild symptoms of mental imparement vs being well, adjusting for socio econimic status.  
+
+Comparing moderate symptom to being well;
+
+A patient from high socioeconomic status is 85.68% less likely to suffer moderate symptoms vs being well compared to a patient of low socio economic status, adjusting for life events.  
+
+For every unit increase in the life events index, a patient is 34.04% more likely to suffer moderate symptoms vs being well, adjusting for socioeconomic status
+
+Comparing impared to being well;  
+
+A patient from high socioeconomic status is 80% less likely to suffer imparement vs being well compared to a patient of low socio economic status, adjusting for life events.  
+
+For every unit increase in the life event index, a patient is 75% more likely to suffer imparement vs being well, adjusting for socioeconomic status.
+
+### Ordinal logistic regression model
+
+The ordinal regression models are;  
+``` {r}
+mentmod<-polr(mental~ ses+ event, data = mentaldata)
+summary(mentmod)
+```
+
+  $$ln(Odds of well/ mild, moderate and impared)= -0.2819-1.1112(ses1)+0.31886(event)$$
+  
+  $$ln(Odds of well and mild/moderate and impared)= 1.21279-1.1112(ses1)+0.31886(event)$$  
+  
+  $$ln(Odds of well, mild and moderate/ impared)=2.20937-1.1112(ses1)+0.31886(event)$$
+
+``` {r}
+cbind(exp(coef(mentmod)), exp(confint(mentmod)))
+```
+
+The odds of socioeconomic status (ses) is exp(-1.1112)= 0.32915. This means that a patient from the socio economic status is 67.08% less likely to suffer mental illness compared to a patient of low socio economic status, adjusting for event.
+
+For every unit increase in the life events score, a patient is 37.56% more likely to suffer mental illness.  
+
+## Prediction
+
+_Predict mental imparement of an indivivual of high ses and live event index=8_
+
+For the multinomial model; 
+
+$$P(Mild)/P(Well)= exp(-0.65521-0.24873(ses1)+0.22854(event))$$  
+$$P(moderate)/P(well)=exp(-0.66219-1.94374(ses1)+0.29300(event))$$   
+$$P(impared)/P(well)= exp(-1.90259-1.60625(ses1)+0.56016(event))$$  
+
+For ses=1 and event=8 we get:
+
+$$P(mild)/P(well)= 2.5203$$  
+$$P(moderate)/P(well)= 0.76956$$  
+$$P(impared)/P(well)= 2.64439$$  
+
+But $$P(well)+P(mild)+P(moderate)+P(impared)=1$$  
+
+Therefore we get the probabilities as;
+**P(well)= 0.1442, P(Mild)= 0.3635, P(Moderate) = 0.1110, P(Impared)= 0.3813**
+
+The highest probability is for the prediction is being impared. Therefore the individual from high socioeconomic status and a life index score of 8 is expected to suffer imparement.  
+
+# Question 6
+
+  A clinical trial for the treatment of small-cell lung cancer was carried out where patients were randomly assigned to two treatment groups: the sequential therapy(the same combination of chemotherapeutic agents administered in each treatment cycle) and the alternating therapy(three different combinations alternated from cycle to cycle). Gender was considered a potential effect modifier. 
+	
+Since the data is in form of a contingency table, we have to transform it.  
+
+``` {r}
+M<-rep("m", 480)
+F<-rep("f", 130)
+Gender<-c(M, F)
+Treat<-c(rep("s",194), rep("a",286), rep("s", 62), rep("a", 68))
+response<-c(rep(1,68),rep(2,51),rep(3,39), rep(4,36), rep(1,83), rep(2,87), rep(3,56), rep(4,60), rep(1,14), rep(2,27), rep(3,12), rep(4,9), rep(1,32), rep(2,17), rep(3,12), rep(4,7))
+smallcell<- data.frame(Gender, Treat, response)
+```
+
+``` {r}
+str(smallcell)
+```
+
+## Model
+The model fit is a proportional odds logit model ie an ordinal logistic model.  
+
+The outcome is response to therapy (where 1=Progressive disease, 2=No change, 3=Partial Remission and 4=Complete remission) and the predictor values are Treatment therapy(Sequential and Alternating) and Gender(Male and Female).
+
+``` {r}
+smallcell$response<-as.factor(smallcell$response)
+smallmod<-polr(response~ Treat + Gender, data = smallcell)
+summary(smallmod)
+```
+
+The log odds models are:
+
+$$ln(Response 1/2,3,4)=-0.4975+0.006678(Treat Seq)+0.311577(GenderM)$$
+
+$$ln(Response 1,2/3,4)=0.7419+0.006678(Treat Seq)+0.311577(GenderM)$$
+
+$$ln(Response 1,2,3/4)=1.7432+0.006678(Treat Seq)+0.311577(GenderM)$$
+
+The odds for the predictor variables and their respective confidence intervals are;  
+``` {r}
+cbind(exp(coef(smallmod)), exp(confint(smallmod)))
+```
+
+A patient who undergoes sequential therapy is equally as likely to respond to therapy the same as a patient undergoing alternating therapy, adjusting for gender.
+
+A male is 36.56% more likely to respond to therapy in either way compared to a female undergoing therapy, adjusting for treatment.
