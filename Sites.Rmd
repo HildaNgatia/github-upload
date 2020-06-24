@@ -1,0 +1,70 @@
+---
+title: "Sites"
+author: "Hilda Ngatia"
+date: "6/3/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+``` {r}
+sites<-read.csv("C:/Users/Folio 9480/Desktop/Class work/Year 1 Sem 2/Multivariate analysis/pottery.csv")
+attach(sites)
+```
+
+``` {r}
+sites$site<-as.factor(sites$site)
+str(sites)
+```
+
+``` {r}
+xbar<-colMeans(sites [, -1])
+```
+This gives the column means
+
+``` {r}
+A<-subset(sites, sites$site=="A", select = c(Al,Fe, Mg, Ca, Na))
+meansA<-colMeans(A)
+
+C<-subset(sites, sites$site=="C", select = c(Al,Fe, Mg, Ca, Na))
+meansC<-colMeans(C)
+
+I<-subset(sites, sites$site=="I", select = c(Al,Fe, Mg, Ca, Na))
+meansI<-colMeans(I)
+
+L<-subset(sites, sites$site=="L", select = c(Al,Fe, Mg, Ca, Na))
+meansL<-colMeans(L)
+
+groupmeans<-cbind(meansA, meansC, meansI, meansL); groupmeans
+```
+This shows the column means by site
+
+``` {r}
+sites.manova<-manova(cbind(Al, Fe, Mg, Ca, Na)~ site)
+```
+
+``` {r}
+summary(sites.manova, test = "Pillai")
+```
+``` {r}
+summary(sites.manova, test = "Wilks")
+```
+``` {r}
+summary(sites.manova, test = "Hotelling-Lawley")
+```
+
+``` {r}
+summary(sites.manova, test = "Roy")
+```
+
+``` {r}
+sites.manova
+```
+
+
+
+
+
+
+
